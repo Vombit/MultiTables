@@ -1,0 +1,206 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="clr-namespace:MultiTables.ViewModels"
+        xmlns:views="clr-namespace:MultiTables.Views"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="800"
+        x:Class="MultiTables.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="FocusChangingControlsSecondSolution">
+    
+    <Window.Styles>
+        <Style Selector="ListBoxItem">
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Background="Transparent" BorderBrush="Transparent">
+                        <ContentPresenter
+                            Content="{TemplateBinding Content}"
+                            ContentTemplate="{TemplateBinding ContentTemplate}"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+        </Style>
+        <Style Selector="ListBoxItem:selected">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Foreground" Value="{DynamicResource ThemeForegroundBrush}" />
+        </Style>
+        <Style Selector="ListBoxItem:pointerover">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        
+        <Style Selector="TextBox:pointerover">
+            <Setter Property="Background" Value="DimGray"/>
+        </Style>
+        
+        <Style Selector="TextBox">
+                <Setter Property="Background" Value="DimGray" />
+        </Style>
+        <Style Selector="TextBox:pointerover">
+            <Style Selector="^ /template/ Border#PART_BorderElement">
+                <Setter Property="Background" Value="#494949" />
+            </Style>
+        </Style>
+        <Style Selector="TextBox:focus">
+            <Style Selector="^ /template/ Border#PART_BorderElement">
+                <Setter Property="Background" Value="#797979" />
+            </Style>
+        </Style>
+        
+    </Window.Styles>
+    
+    <Grid RowDefinitions="40,600,*">
+        <StackPanel Grid.Row="0" Orientation="Horizontal">
+            <Button 
+                Content="new elems" 
+                Command="{Binding AddNewElement}" 
+                Margin="20 0"/>
+            <TextBlock VerticalAlignment="Center">ширина ленты:</TextBlock>
+            <!-- минимальная ширина 20мм, максимальная 100мм -->
+            <NumericUpDown Grid.Column="1" 
+                           Minimum="20"
+                           Maximum="100"
+                           FormatString="0"
+                           Increment="1"
+                           Width="32"
+                           MaxHeight="28"
+                           Margin="5 0 "
+                           HorizontalContentAlignment="Center"
+                           VerticalContentAlignment="Center"
+                           Padding="0"
+                           ShowButtonSpinner="False"
+                           Value="{Binding Height}">
+            </NumericUpDown>
+            <TextBlock VerticalAlignment="Center">Шрифт:</TextBlock>
+            <ComboBox Grid.Column="2"
+                      ItemsSource="{Binding FontFamilies}"
+                      SelectedItem="{Binding ActiveSection.FontFamily}"
+                      Width="140" 
+                      MaxHeight="28"
+                      HorizontalContentAlignment="Center"
+                      VerticalContentAlignment="Center"
+                      Margin="5 5"
+                      Padding="0" 
+                      />
+            <TextBlock VerticalAlignment="Center">Размер шрифта:</TextBlock>
+            <NumericUpDown Grid.Column="3"
+                           Value="{Binding ActiveSection.FontSize, FallbackValue=14}"
+                           Minimum="5"
+                           Maximum="128"
+                           FormatString="0"
+                           Increment="1"
+                           Width="32"
+                           MaxHeight="28"
+                           HorizontalContentAlignment="Center"
+                           VerticalContentAlignment="Center"
+                           Margin="5 0 "
+                           Padding="0"
+                           ShowButtonSpinner="False"
+                           />
+        </StackPanel>
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Auto">
+            <ListBox ItemsSource="{Binding StackElements}">
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10"></StackPanel>
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid RowDefinitions="Auto, Auto, Auto">
+                            <StackPanel Orientation="Vertical" HorizontalAlignment="Left" Margin="10 0 0 0">
+                                <TextBlock Grid.Row="0" HorizontalAlignment="Center">Длина</TextBlock>
+                                <NumericUpDown Grid.Column="1" 
+                                               Minimum="10"
+                                               FormatString="0"
+                                               Increment="1"
+                                               MinWidth="32" 
+                                               MinHeight="1"
+                                               HorizontalContentAlignment="Center"
+                                               VerticalContentAlignment="Center"
+                                               Padding="0"
+                                               ShowButtonSpinner="False"
+                                               Value="{Binding Width}" />
+                            </StackPanel>
+                            <!-- установлена MinHeight = 102 для того чтобы не появлялся скролл -->
+                            <ListBox 
+                                Width="{Binding VisualWidth}" 
+                                MinHeight="102"
+                                Height="{Binding VisualHeight}"
+                                Background="Aquamarine" 
+                                Padding="0" 
+                                Margin="10" 
+                                Grid.Row="1" 
+                                ItemsSource="{Binding ElementsList}">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid MinHeight="5" Columns="1"/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*, 32" Height="{Binding VisualHeight}" Margin="1" >
+                                            <ItemsControl Grid.Column="0" MinHeight="5" ItemsSource="{Binding Sections}">
+                                                    <ItemsControl.ItemsPanel>
+                                                        <ItemsPanelTemplate>
+                                                            <UniformGrid MinHeight="0" Columns="{Binding Sections.Count}"/> 
+                                                        </ItemsPanelTemplate>
+                                                    </ItemsControl.ItemsPanel>
+                                                    <ItemsControl.ItemTemplate>
+                                                        <DataTemplate>
+                                                            <TextBox 
+                                                                TextAlignment="Center" 
+                                                                HorizontalContentAlignment="Center" 
+                                                                VerticalContentAlignment="Center"
+                                                                AcceptsReturn="True"
+                                                                ClipToBounds="True"
+                                                                MinHeight="0"
+                                                                MinWidth="1"
+                                                                Padding="0"
+                                                                Margin="1 0"
+                                                                Foreground="AliceBlue"
+                                                                Text="{Binding Text}"
+                                                                FontFamily="{Binding VisualFontFamily}"
+                                                                FontSize="{Binding FontSize}"
+                                                                GotFocus="OnSectionGotFocus" />
+                                                        </DataTemplate>
+                                                    </ItemsControl.ItemTemplate>
+                                            </ItemsControl>
+                                                <NumericUpDown Grid.Column="1" 
+                                                               Minimum="0"
+                                                               Maximum="64"
+                                                               FormatString="0"
+                                                               Increment="1"
+                                                               MinWidth="1" 
+                                                               Width="32"
+                                                               MinHeight="1"
+                                                               HorizontalContentAlignment="Center"
+                                                               VerticalContentAlignment="Center"
+                                                               Padding="0"
+                                                               ShowButtonSpinner="False"
+                                                               Margin="1 0 0 0"
+                                                               Value="{Binding SectionsCount}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <Button Grid.Row="2" 
+                                    Content="+"
+                                    Command="{Binding AddRowCommand}"
+                                    HorizontalAlignment="Center"
+                                    Padding="20, 5 20, 5"/>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </ScrollViewer>
+        
+        <views:Preview Grid.Row="2" DataContext="{Binding PreviewViewModel}"/>
+    </Grid>
+</Window>
