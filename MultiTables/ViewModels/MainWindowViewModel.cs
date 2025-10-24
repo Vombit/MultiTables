@@ -109,7 +109,7 @@ public class MainWindowViewModel : ViewModelBase
         var element = new Element() { Sections = section };
         element.RequestRemoveSelf += RemoveElement;
         el.Add(element);
-        var list = new ListElements(RemoveElement) { ElementsList = el };
+        var list = new ListElements() { ElementsList = el };
         list.Height = Height;
         StackElements.Add(list);
     }

@@ -1,24 +1,34 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.Linq;
 using System.Reactive;
 using Avalonia.Media;
 using ReactiveUI;
 
 namespace MultiTables.Models;
 
-
-public class ListElements: ReactiveObject
+public class ListElements : ReactiveObject
 {
     private const double VisualScale = 4.5;
-    
+
     private ObservableCollection<Element> _elementsList = new();
     public ReactiveCommand<Unit, Unit> AddRowCommand { get; }
+
     public ObservableCollection<Element> ElementsList
     {
         get => _elementsList;
-        set => this.RaiseAndSetIfChanged(ref _elementsList, value);
+        set
+        {
+            if (_elementsList == value) return;
+            UnsubscribeCollectionEvents(_elementsList);
+            this.RaiseAndSetIfChanged(ref _elementsList, value ?? new ObservableCollection<Element>());
+            SubscribeCollectionEvents(_elementsList);
+            // пересчитать сразу при замене коллекции
+            RecalculationSizes();
+        }
     }
-    
+
     private int _width = 50;
     private int _visualWidth = 261;
     public int Width
@@ -36,7 +46,7 @@ public class ListElements: ReactiveObject
         get => _visualWidth;
         set => this.RaiseAndSetIfChanged(ref _visualWidth, value);
     }
-    
+
     private int _height;
     public int Height
     {
@@ -45,13 +55,8 @@ public class ListElements: ReactiveObject
         {
             this.RaiseAndSetIfChanged(ref _height, value);
             VisualHeight = (int)(Height * VisualScale);
-            Console.WriteLine(VisualHeight);
-            Console.WriteLine(VisualHeight / _elementsList.Count);
-            Console.WriteLine();
-            foreach (var element in _elementsList)
-            {
-                element.VisualHeight = VisualHeight / _elementsList.Count - 2;
-            }
+
+            RecalculationSizes();
         }
     }
     private int _visualHeight;
@@ -61,33 +66,95 @@ public class ListElements: ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _visualHeight, value);
     }
 
-    public ListElements(Action<Element> removeElement)
+    public ListElements()
     {
         const int maxElements = 3;
-        
+
+        // Подписываемся на изменение коллекции
+        SubscribeCollectionEvents(_elementsList);
+
         AddRowCommand = ReactiveCommand.Create(() =>
         {
             if (_elementsList.Count >= maxElements) return;
-            
+
             const string defaultText = "1";
-            
+
             var newElement = new Element();
-            newElement.RequestRemoveSelf += removeElement;
+            newElement.RequestRemoveSelf += RemoveElement;
             newElement.Sections.Add(new Section { Text = defaultText });
 
             _elementsList.Add(newElement);
+            // RecalculationSizes будет вызван обработчиком CollectionChanged,
+            // но можно вызвать и явно:
             RecalculationSizes();
-
         });
     }
-    private void RecalculationSizes()
+
+    private void SubscribeCollectionEvents(ObservableCollection<Element> collection)
     {
-        foreach (var element in _elementsList)
+        if (collection == null) return;
+        collection.CollectionChanged += ElementsList_CollectionChanged;
+        // Убедимся что все элементы подписаны на RequestRemoveSelf
+        foreach (var el in collection)
         {
-            element.VisualHeight = VisualHeight / _elementsList.Count - 2;
+            el.RequestRemoveSelf -= RemoveElement; // на всякий
+            el.RequestRemoveSelf += RemoveElement;
         }
     }
 
+    private void UnsubscribeCollectionEvents(ObservableCollection<Element> collection)
+    {
+        if (collection == null) return;
+        collection.CollectionChanged -= ElementsList_CollectionChanged;
+        foreach (var el in collection)
+            el.RequestRemoveSelf -= RemoveElement;
+    }
+
+    private void ElementsList_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+    {
+        // Подпишем новых и отпишем удалённых
+        if (e.NewItems != null)
+        {
+            foreach (Element n in e.NewItems)
+            {
+                n.RequestRemoveSelf -= RemoveElement;
+                n.RequestRemoveSelf += RemoveElement;
+            }
+        }
+        if (e.OldItems != null)
+        {
+            foreach (Element o in e.OldItems)
+            {
+                o.RequestRemoveSelf -= RemoveElement;
+            }
+        }
+
+        RecalculationSizes();
+    }
+
+    private void RemoveElement(Element element)
+    {
+        // вызывается когда Element говорит "удалите меня"
+        if (element == null) return;
+        if (_elementsList.Contains(element))
+        {
+            _elementsList.Remove(element);
+        }
+        RecalculationSizes();
+    }
+
+    public void RecalculationSizes()
+    {
+        var count = _elementsList?.Count ?? 0;
+        if (count == 0) return; // нечего пересчитывать
+
+        // целочисленное деление — оставлено, но убедимся что не отрицательное
+        var per = Math.Max(0, VisualHeight / count - 2);
+        foreach (var element in _elementsList)
+        {
+            element.VisualHeight = per;
+        }
+    }
 }
 
 public class Element: ReactiveObject
