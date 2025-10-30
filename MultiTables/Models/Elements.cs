@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.ObjectModel;
 using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Reactive;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using ReactiveUI;
 
 namespace MultiTables.Models;
@@ -167,20 +169,14 @@ public class Element: ReactiveObject
         set => this.RaiseAndSetIfChanged(ref _sections, value);
     }
     
-    private readonly ListElements _elements;
-
-    public Element()
-    {
-        
-    }
-    
-    public int MainWidth { get; set; }
-    
     private int _visualHeight;
     public int VisualHeight
     {
         get => _visualHeight;
-        set => this.RaiseAndSetIfChanged(ref _visualHeight, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _visualHeight, value);
+        }
     }
 
     private int _sectionsCount = 1;
@@ -202,7 +198,7 @@ public class Element: ReactiveObject
         while (Sections.Count > targetCount) 
             Sections.RemoveAt(Sections.Count - 1);
 
-        if (Sections.Count == 0) 
+        if (Sections.Count == 0)
             RequestRemoveSelf?.Invoke(this);
     }
 }
@@ -211,15 +207,52 @@ public class Element: ReactiveObject
 public class Section : ReactiveObject
 {
     private string? _text;
+    private string? _imagePath;
+    private Bitmap? _imageBitmap;
     private string _fontFamily = "Arial";
     private FontFamily _visualFontFamily = new FontFamily("Arial");
     private double _fontSize = 14;
+    private bool _isActive;
     public string? Text
     {
         get => _text;
         set => this.RaiseAndSetIfChanged(ref _text, value);
     }
 
+    
+    public string? ImagePath
+    {
+        get => _imagePath;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _imagePath, value);
+            
+            // Загружаем bitmap при установке пути
+            if (!string.IsNullOrEmpty(value) && File.Exists(value))
+            {
+                try
+                {
+                    ImageBitmap = new Bitmap(value);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Error loading image: {ex.Message}");
+                    ImageBitmap = null;
+                }
+            }
+            else
+            {
+                ImageBitmap = null;
+            }
+        }
+    }
+
+    public Bitmap? ImageBitmap
+    {
+        get => _imageBitmap;
+        private set => this.RaiseAndSetIfChanged(ref _imageBitmap, value);
+    }
+    
     public string FontFamily
     {
         get => _fontFamily;
@@ -229,7 +262,7 @@ public class Section : ReactiveObject
             VisualFontFamily = new FontFamily(value);
 
         }
-}
+    }
 
     public FontFamily VisualFontFamily
     {
@@ -244,14 +277,15 @@ public class Section : ReactiveObject
             this.RaiseAndSetIfChanged(ref _fontSize, value);
         }
     }
-
-    private double _visualHeight;
-    public double VisualHeight
+    public bool IsActive
     {
-        get => _visualHeight;
+        get => _isActive;
         set
         {
-            this.RaiseAndSetIfChanged(ref _visualHeight, value);
+            if (_isActive != value)
+            {
+                this.RaiseAndSetIfChanged(ref _isActive, value);
+            }
         }
     }
 }

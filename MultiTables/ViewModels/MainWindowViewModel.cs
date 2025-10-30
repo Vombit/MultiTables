@@ -56,7 +56,20 @@ public class MainWindowViewModel : ViewModelBase
     public Section ActiveSection
     {
         get => _activeSection;
-        set => this.RaiseAndSetIfChanged(ref _activeSection, value);
+        set {
+            if (_activeSection != null)
+            {
+                _activeSection.IsActive = false;
+            }
+
+            this.RaiseAndSetIfChanged(ref _activeSection, value);
+            
+            if (_activeSection != null)
+            {
+                _activeSection.IsActive = true;
+            }
+                
+        }
     }
     public List<string> FontFamilies
     {
@@ -73,7 +86,7 @@ public class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel(PreviewViewModel previewViewModel)
     {
         _previewViewModel = previewViewModel;
-        CreateElement();
+        // CreateElement();
         FontFamilies = FontManager.Current.SystemFonts
             .OrderBy(f => f.Name)
             .Select(f => f.Name)
@@ -83,11 +96,10 @@ public class MainWindowViewModel : ViewModelBase
         
         _updateTimer = new DispatcherTimer
         {
-            Interval = TimeSpan.FromSeconds(0.5)
+            Interval = TimeSpan.FromSeconds(0.2)
         };
         _updateTimer.Tick += (_, _) =>
         {
-            // Console.WriteLine(ActiveSection.FontFamily);
             if (!IsWindowActive)
                 return;
             var currentHash = GetCurrentStateHash();
@@ -130,6 +142,7 @@ public class MainWindowViewModel : ViewModelBase
                         hash.Add(section.Text);
                         hash.Add(section.FontSize);
                         hash.Add(section.FontFamily);
+                        hash.Add(section.ImagePath);
                     }
                 }
             }

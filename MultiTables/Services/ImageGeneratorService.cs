@@ -28,11 +28,12 @@ namespace MultiTables.Services
                 }
             }
 
+            const double scale = 10;
+            var scaledWidth = totalWidth * scale;
+            var scaledHeight = totalHeight * scale;
 
-            var pixelSize = new PixelSize((int)(totalWidth*10), (int)(totalHeight*10));
-
-            var dpi = new Vector(300, 300);
-
+            var pixelSize = new PixelSize((int)scaledWidth, (int)scaledHeight);
+            var dpi = new Vector(96, 96);
             var renderBitmap = new RenderTargetBitmap(pixelSize, dpi);
 
             using (var ctx = renderBitmap.CreateDrawingContext(true))
@@ -65,49 +66,95 @@ namespace MultiTables.Services
                         {
                             var section = element.Sections[k];
                             double sectionX = currentX + k * sectionWidth;
-                            // Заливаем белым фон
-                            ctx.FillRectangle(Brushes.White, new Rect(sectionX, elementY, sectionWidth, elementHeight));
-                            // Рисуем только правую и нижнюю границы (чтобы не дублировались)
+                            
+                            var scaledRect = new Rect(
+                                sectionX * scale, 
+                                elementY * scale, 
+                                sectionWidth * scale, 
+                                elementHeight * scale
+                            );
+                            ctx.FillRectangle(Brushes.White, scaledRect);
+                            
+                            if (section.ImageBitmap != null)
+                            {
+                                double imageWidth = sectionWidth * scale;
+                                double imageHeight = elementHeight * scale;
+    
+                                // Вычисляем пропорции
+                                double imageAspect = (double)section.ImageBitmap.PixelSize.Width / section.ImageBitmap.PixelSize.Height;
+                                double containerAspect = imageWidth / imageHeight;
+    
+                                double drawWidth, drawHeight, drawX, drawY;
+    
+                                if (imageAspect > containerAspect)
+                                {
+                                    // Картинка шире - подгоняем по ширине
+                                    drawWidth = imageWidth;
+                                    drawHeight = imageWidth / imageAspect;
+                                    drawX = sectionX * scale;
+                                    drawY = elementY * scale + (elementHeight * scale - drawHeight) / 2;
+                                }
+                                else
+                                {
+                                    // Картинка выше - подгоняем по высоте
+                                    drawHeight = imageHeight;
+                                    drawWidth = imageHeight * imageAspect;
+                                    drawX = sectionX * scale + (sectionWidth * scale - drawWidth) / 2;
+                                    drawY = elementY * scale;
+                                }
+     
+                                var destRect = new Rect(drawX, drawY, drawWidth, drawHeight);
+                                var sourceRect = new Rect(0, 0, section.ImageBitmap.PixelSize.Width, section.ImageBitmap.PixelSize.Height);
+    
+                                ctx.DrawImage(section.ImageBitmap, sourceRect, destRect);
+                            }
+                            else if (section.Text != null)
+                            {
+                                // ctx.PushClip(scaledRect);
+                                double fontSize = section.FontSize / 4.5 * scale;
+                                
+                                var formattedText = new FormattedText(
+                                    section.Text,
+                                    CultureInfo.CurrentCulture,
+                                    FlowDirection.LeftToRight,
+                                    new Typeface(section.VisualFontFamily),
+                                    fontSize,
+                                    Brushes.Black)
+                                {
+                                    TextAlignment = TextAlignment.Center,
+                                    MaxTextWidth = sectionWidth * scale
+                                };
+                                double textX = sectionX * scale;
+                                double textY = elementY * scale + (elementHeight * scale - formattedText.Height) / 2;
+
+                                ctx.DrawText(formattedText, new Point(textX, textY));
+                            }
+                            
+                            
+                            
                             // Правая граница
                             if (k < element.Sections.Count - 1 || i < stackElements.Count - 1)
                             {
                                 ctx.FillRectangle(Brushes.Black,
-                                    new Rect(sectionX + sectionWidth - 1, elementY, 1, elementHeight));
+                                    new Rect((sectionX + sectionWidth) * scale - 2, elementY * scale, 2, elementHeight * scale));
                             }
-
                             // Нижняя граница
                             if (j < listElements.ElementsList.Count - 1)
                             {
                                 ctx.FillRectangle(Brushes.Black,
-                                    new Rect(sectionX, elementY + elementHeight - 1, sectionWidth, 1));
+                                    new Rect(sectionX * scale, (elementY + elementHeight) * scale - 2, sectionWidth * scale, 2));
                             }
-
-                            // Рисуем текст в секции
-                            if (section.Text == null) continue;
-                            var formattedText = new FormattedText(
-                                section.Text,
-                                CultureInfo.CurrentCulture,
-                                FlowDirection.LeftToRight,
-                                new Typeface(section.FontFamily),
-                                section.FontSize/4,
-                                Brushes.Black);
-                            
-                            // Центрируем текст
-                            double textX = sectionX + (sectionWidth - formattedText.Width) / 2;
-                            double textY = elementY + (elementHeight - formattedText.Height) / 2;
-
-                            ctx.DrawText(formattedText, new Point(textX, textY));
                         }
                     }
 
-                    currentX += listWidth; // Смещаемся на ширину текущего листа
+                    currentX += listWidth;
                 }
 
-                // Рисуем внешние границы (верх и лево)
-                ctx.FillRectangle(Brushes.Black, new Rect(0, 0, totalWidth, 1)); // Верх
-                ctx.FillRectangle(Brushes.Black, new Rect(0, 0, 1, totalHeight)); // Лево
-                ctx.FillRectangle(Brushes.Black, new Rect(totalWidth, 0, 1, totalHeight)); // Право
-                ctx.FillRectangle(Brushes.Black, new Rect(0, totalHeight-1, totalWidth+1, 1)); // Низ
+                // внешние границы
+                ctx.FillRectangle(Brushes.Black, new Rect(0, 0, scaledWidth, 2)); // Верх
+                ctx.FillRectangle(Brushes.Black, new Rect(0, 0, 2, scaledHeight)); // Лево
+                ctx.FillRectangle(Brushes.Black, new Rect(scaledWidth - 2, 0, 2, scaledHeight)); // Право
+                ctx.FillRectangle(Brushes.Black, new Rect(0, scaledHeight - 2, scaledWidth, 2)); // Низ
             }
 
             return renderBitmap;

@@ -4,7 +4,8 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:MultiTables.ViewModels"
         xmlns:views="clr-namespace:MultiTables.Views"
-        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="800"
+        xmlns:local="clr-namespace:MultiTables"
+        mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="900"
         x:Class="MultiTables.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
@@ -41,6 +42,7 @@
         
         <Style Selector="TextBox">
                 <Setter Property="Background" Value="DimGray" />
+                <Setter Property="BorderThickness" Value="0" />
         </Style>
         <Style Selector="TextBox:pointerover">
             <Style Selector="^ /template/ Border#PART_BorderElement">
@@ -49,13 +51,25 @@
         </Style>
         <Style Selector="TextBox:focus">
             <Style Selector="^ /template/ Border#PART_BorderElement">
-                <Setter Property="Background" Value="#797979" />
+                <Setter Property="Background" Value="DimGray" />
+                <Setter Property="BorderBrush" Value="Transparent" />
             </Style>
         </Style>
         
+        
+        <Style Selector="Border.section-border">
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="#494949" />
+        </Style>
+
+        <Style Selector="Border.section-border.active">
+            <Setter Property="BorderBrush" Value="#c31e59" />
+            <Setter Property="BorderThickness" Value="3" />
+        </Style>
     </Window.Styles>
     
-    <Grid RowDefinitions="40,600,*">
+    <Grid RowDefinitions="40,550,*">
         <StackPanel Grid.Row="0" Orientation="Horizontal">
             <Button 
                 Content="new elems" 
@@ -108,13 +122,19 @@
             <ListBox ItemsSource="{Binding StackElements}">
                 <ListBox.ItemsPanel>
                     <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Spacing="10"></StackPanel>
+                        <StackPanel 
+                            Orientation="Horizontal" 
+                            VerticalAlignment="Center" 
+                            Spacing="10" />
                     </ItemsPanelTemplate>
                 </ListBox.ItemsPanel>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Grid RowDefinitions="Auto, Auto, Auto">
-                            <StackPanel Orientation="Vertical" HorizontalAlignment="Left" Margin="10 0 0 0">
+                            <StackPanel 
+                                Orientation="Vertical" 
+                                HorizontalAlignment="Left" 
+                                Margin="10 0 0 0">
                                 <TextBlock Grid.Row="0" HorizontalAlignment="Center">Длина</TextBlock>
                                 <NumericUpDown Grid.Column="1" 
                                                Minimum="10"
@@ -128,12 +148,11 @@
                                                ShowButtonSpinner="False"
                                                Value="{Binding Width}" />
                             </StackPanel>
-                            <!-- установлена MinHeight = 102 для того чтобы не появлялся скролл -->
                             <ListBox 
                                 Width="{Binding VisualWidth}" 
-                                MinHeight="102"
                                 Height="{Binding VisualHeight}"
-                                Background="Aquamarine" 
+                                Background="#1A00FF5C"
+                                CornerRadius="5"
                                 Padding="0" 
                                 Margin="10" 
                                 Grid.Row="1" 
@@ -145,30 +164,54 @@
                                 </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
-                                        <Grid ColumnDefinitions="*, 32" Height="{Binding VisualHeight}" Margin="1" >
-                                            <ItemsControl Grid.Column="0" MinHeight="5" ItemsSource="{Binding Sections}">
+                                        <Grid 
+                                            ColumnDefinitions="*, 32" 
+                                            Height="{Binding VisualHeight}" 
+                                            Margin="1" >
+                                            <ItemsControl Grid.Column="0" 
+                                                          MinHeight="5" 
+                                                          ItemsSource="{Binding Sections}">
                                                     <ItemsControl.ItemsPanel>
                                                         <ItemsPanelTemplate>
-                                                            <UniformGrid MinHeight="0" Columns="{Binding Sections.Count}"/> 
+                                                            <UniformGrid 
+                                                                MinHeight="0" 
+                                                                Columns="{Binding Sections.Count}"/> 
                                                         </ItemsPanelTemplate>
                                                     </ItemsControl.ItemsPanel>
                                                     <ItemsControl.ItemTemplate>
                                                         <DataTemplate>
-                                                            <TextBox 
-                                                                TextAlignment="Center" 
-                                                                HorizontalContentAlignment="Center" 
-                                                                VerticalContentAlignment="Center"
-                                                                AcceptsReturn="True"
-                                                                ClipToBounds="True"
-                                                                MinHeight="0"
-                                                                MinWidth="1"
-                                                                Padding="0"
-                                                                Margin="1 0"
-                                                                Foreground="AliceBlue"
-                                                                Text="{Binding Text}"
-                                                                FontFamily="{Binding VisualFontFamily}"
-                                                                FontSize="{Binding FontSize}"
-                                                                GotFocus="OnSectionGotFocus" />
+                                                            <Border x:Name="SectionBorder"
+                                                                    Classes="section-border"
+                                                                    Classes.active="{Binding IsActive}"
+                                                                    CornerRadius="5"
+                                                                    Margin="1 0"
+                                                                    DragDrop.AllowDrop="True"
+                                                                    PointerPressed="OnSectionPointerPressed">
+
+                                                                <Panel>
+                                                                    <Image IsVisible="{Binding ImageBitmap, Converter={x:Static ObjectConverters.IsNotNull}}"
+                                                                           Source="{Binding ImageBitmap}" 
+                                                                           Stretch="Uniform"/>
+               
+                                                                    <TextBox 
+                                                                        CornerRadius="5"
+                                                                        IsVisible="{Binding ImagePath, Converter={x:Static ObjectConverters.IsNull}}"
+                                                                        TextAlignment="Center" 
+                                                                        HorizontalContentAlignment="Center" 
+                                                                        VerticalContentAlignment="Center"
+                                                                        AcceptsReturn="True"
+                                                                        ClipToBounds="True"
+                                                                        MinHeight="1"
+                                                                        LineHeight="{Binding FontSize}"
+                                                                        MinWidth="1"
+                                                                        Padding="0"
+                                                                        Foreground="AliceBlue"
+                                                                        Text="{Binding Text}"
+                                                                        FontFamily="{Binding VisualFontFamily}"
+                                                                        FontSize="{Binding FontSize}"
+                                                                        GotFocus="OnSectionGotFocus" />
+                                                                </Panel>
+                                                            </Border>
                                                         </DataTemplate>
                                                     </ItemsControl.ItemTemplate>
                                             </ItemsControl>
